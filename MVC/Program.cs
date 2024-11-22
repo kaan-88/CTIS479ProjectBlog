@@ -12,6 +12,7 @@ var connectionString = "server=(localdb)\\mssqllocaldb;database=Blogs;trusted_co
 builder.Services.AddDbContext<BlogDbContext>(options => options.UseSqlServer(connectionString));
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<IBlogService, BlogService>();
 
 var app = builder.Build();
 
