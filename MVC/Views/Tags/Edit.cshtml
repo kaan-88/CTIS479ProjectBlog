@@ -1,4 +1,4 @@
-﻿@model UserModel
+@model TagModel
 
 @* Generated from Custom Template. *@
 @* Model namespace using directive should be added to _ViewImports.cshtml. *@
@@ -8,7 +8,7 @@
     var dateTimePickerClass = "datetimepicker";
 }
 @{
-    ViewData["Title"] = "User Edit";
+    ViewData["Title"] = "Tag Edit";
 }
 
 <div class="@containerDivClass">
@@ -30,35 +30,12 @@
         <div asp-validation-summary="ModelOnly" class="text-danger"></div>
         <input type="hidden" asp-for="Record.Id" />
         <div class="row mb-3">
-            <label asp-for="Record.UserName" class="col-2 col-form-label fw-bold"></label>
+            <label asp-for="Name" class="col-2 col-form-label fw-bold"></label>
 	        <div class="col-10">
-	            <input asp-for="Record.UserName" class="form-control" />
-		        <span asp-validation-for="Record.UserName" class="text-danger"></span>
+	            <input asp-for="Record.Name" class="form-control" />
+		        <span asp-validation-for="Record.Name" class="text-danger"></span>
 	        </div>
         </div>
-        <div class="row mb-3">
-                <label asp-for="Record.Password" class="col-2 col-form-label fw-bold"></label>
-	        <div class="col-10">
-	            <input asp-for="Record.Password" class="form-control" />
-		        <span asp-validation-for="Record.Password" class="text-danger"></span>
-	        </div>
-        </div>
-        <div class="row mb-3">
-                <label asp-for="Record.IsActive" class="col-2 col-form-label fw-bold"></label>
-		    <div class="col-10 pt-2">
-			    <input class="form-check-input" asp-for="Record.IsActive" />
-            </div>
-        </div>
-            <div class="row mb-3">
-                <label asp-for="Record.RoleId" class="col-2 col-form-label fw-bold"></label>
-                <div class="col-10">
-                    <select asp-for="Record.RoleId" class="form-select" asp-items="ViewBag.RoleId">
-                        <option value="">-- Select --</option>
-                    </select>
-                    <span asp-validation-for="Record.RoleId" class="text-danger"></span>
-                </div>
-            </div>
-
 
 @* Can be uncommented and used for many to many relationships. ManyToManyRecord may be replaced with the related entiy name in the controller and views. *@
         @*
@@ -85,4 +62,8 @@
         </div>
     </form>
 </div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
 }

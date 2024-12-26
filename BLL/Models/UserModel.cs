@@ -11,5 +11,11 @@ namespace BLL.Models
     {
         public User Record { get; set; }
         public string Name => Record.UserName;
+
+        public string Password => Record.Password;
+
+        public string IsActive => Record.IsActive ? "Active" : "Not Active";
+
+        public string Role => Record.Role?.Name;
     }
 }

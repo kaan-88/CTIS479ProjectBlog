@@ -3,61 +3,53 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using BLL.Controllers.Bases;
 using BLL.Services;
 using BLL.Models;
-
-// Generated from Custom Template.
+using BLL.Services.Bases;
+using BLL.DAL;
+using Microsoft.AspNetCore.Authorization;
 
 namespace MVC.Controllers
 {
     public class BlogsController : MvcController
     {
-        // Service injections:
         private readonly IBlogService _blogService;
         private readonly IUserService _userService;
-
-        /* Can be uncommented and used for many to many relationships. ManyToManyRecord may be replaced with the related entiy name in the controller and views. */
-        //private readonly IManyToManyRecordService _ManyToManyRecordService;
+        private readonly IService<Tag, TagModel> _tagService;
 
         public BlogsController(
-			IBlogService blogService
-            , IUserService userService
-
-            /* Can be uncommented and used for many to many relationships. ManyToManyRecord may be replaced with the related entiy name in the controller and views. */
-            //, IManyToManyRecordService ManyToManyRecordService
+            IBlogService blogService,
+            IUserService userService,
+            IService<Tag, TagModel> tagService
         )
         {
             _blogService = blogService;
             _userService = userService;
-
-            /* Can be uncommented and used for many to many relationships. ManyToManyRecord may be replaced with the related entiy name in the controller and views. */
-            //_ManyToManyRecordService = ManyToManyRecordService;
+            _tagService = tagService;
         }
 
         // GET: Blogs
+        [AllowAnonymous]
         public IActionResult Index()
         {
-            // Get collection service logic:
             var list = _blogService.Query().ToList();
             return View(list);
         }
 
         // GET: Blogs/Details/5
+        [AllowAnonymous]
         public IActionResult Details(int id)
         {
-            // Get item service logic:
             var item = _blogService.Query().SingleOrDefault(q => q.Record.Id == id);
             return View(item);
         }
 
         protected void SetViewData()
         {
-            // Related items service logic to set ViewData (Record.Id and Name parameters may need to be changed in the SelectList constructor according to the model):
             ViewData["UserId"] = new SelectList(_userService.Query().ToList(), "Record.Id", "Name");
-            
-            /* Can be uncommented and used for many to many relationships. ManyToManyRecord may be replaced with the related entiy name in the controller and views. */
-            //ViewBag.ManyToManyRecordIds = new MultiSelectList(_ManyToManyRecordService.Query().ToList(), "Record.Id", "Name");
+            ViewBag.TagIds = new MultiSelectList(_tagService.Query().ToList(), "Record.Id", "Name");
         }
 
         // GET: Blogs/Create
+        [Authorize]
         public IActionResult Create()
         {
             SetViewData();
@@ -67,11 +59,20 @@ namespace MVC.Controllers
         // POST: Blogs/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize]
         public IActionResult Create(BlogModel blog)
         {
             if (ModelState.IsValid)
             {
-                // Insert item service logic:
+                var userIdClaim = User.FindFirst("Id");
+                if (userIdClaim == null)
+                {
+                    TempData["Message"] = "You must be logged in to create a blog.";
+                    return RedirectToAction("Login", "Users");
+                }
+
+                blog.Record.UserId = int.Parse(userIdClaim.Value);
+
                 var result = _blogService.Create(blog.Record);
                 if (result.IsSuccessful)
                 {
@@ -80,15 +81,17 @@ namespace MVC.Controllers
                 }
                 ModelState.AddModelError("", result.Message);
             }
+
             SetViewData();
             return View(blog);
         }
 
         // GET: Blogs/Edit/5
+        [Authorize]
         public IActionResult Edit(int id)
         {
-            // Get item to edit service logic:
             var item = _blogService.Query().SingleOrDefault(q => q.Record.Id == id);
+            if (item == null) return NotFound();
             SetViewData();
             return View(item);
         }
@@ -96,11 +99,11 @@ namespace MVC.Controllers
         // POST: Blogs/Edit
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize]
         public IActionResult Edit(BlogModel blog)
         {
             if (ModelState.IsValid)
             {
-                // Update item service logic:
                 var result = _blogService.Update(blog.Record);
                 if (result.IsSuccessful)
                 {
@@ -114,22 +117,23 @@ namespace MVC.Controllers
         }
 
         // GET: Blogs/Delete/5
+        [Authorize]
         public IActionResult Delete(int id)
         {
-            // Get item to delete service logic:
             var item = _blogService.Query().SingleOrDefault(q => q.Record.Id == id);
+            if (item == null) return NotFound();
             return View(item);
         }
 
         // POST: Blogs/Delete
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
+        [Authorize]
         public IActionResult DeleteConfirmed(int id)
         {
-            // Delete item service logic:
             var result = _blogService.Delete(id);
             TempData["Message"] = result.Message;
             return RedirectToAction(nameof(Index));
         }
-	}
+    }
 }

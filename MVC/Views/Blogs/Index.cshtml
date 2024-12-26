@@ -72,9 +72,12 @@
                                 @Html.DisplayFor(modelItem => item.Record.User.UserName)
 					        </td>
 					        <td class="text-end w-25">
-						        <a asp-action="Details" asp-route-id="@item.Record.Id">Details</a>&nbsp;|&nbsp;
-						        <a asp-action="Edit" asp-route-id="@item.Record.Id">Edit</a>&nbsp;|&nbsp;
-						        <a asp-action="Delete" asp-route-id="@item.Record.Id">Delete</a>
+						        <a asp-action="Details" asp-route-id="@item.Record.Id">Details</a>
+                                @if (User.IsInRole("Admin")){
+                                @:&nbsp;|&nbsp;
+                                <a asp-action="Edit" asp-route-id="@item.Record.Id">Edit</a>@:&nbsp;|&nbsp;
+                                <a asp-action="Delete" asp-route-id="@item.Record.Id">Delete</a>
+                                }
 					        </td>
 				        </tr>
 		            }

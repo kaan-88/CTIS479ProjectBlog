@@ -1,18 +1,38 @@
 using Microsoft.EntityFrameworkCore;
 using BLL.DAL;
 using BLL.Services;
+using BLL.Models;
+using BLL.Services.Bases;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-//IoC Container
-var connectionString = "server=(localdb)\\mssqllocaldb;database=Blogs;trusted_connection=true;";
+// Add Authentication with Cookies
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Users/Login";
+        options.AccessDeniedPath = "/Users/Login";
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+        options.SlidingExpiration = true;
+    });
+
+// AppSettings
+var appSettingsSection = builder.Configuration.GetSection(nameof(AppSettings));
+appSettingsSection.Bind(new AppSettings());
+
+var connectionString = builder.Configuration.GetConnectionString("Db");
 builder.Services.AddDbContext<BlogDbContext>(options => options.UseSqlServer(connectionString));
-builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IBlogService, BlogService>();
+builder.Services.AddScoped<IService<Tag, TagModel>, TagService>();
+builder.Services.AddScoped<IService<User, UserModel>, UserService>();
+builder.Services.AddScoped<IUserService, UserService>();
+
+
 
 var app = builder.Build();
 
@@ -29,6 +49,8 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+// Enable Authentication
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllerRoute(

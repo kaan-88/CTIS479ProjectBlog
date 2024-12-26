@@ -10,29 +10,32 @@ using System.Threading.Tasks;
 
 namespace BLL.Services
 {
-    public interface IUserService
+    public interface IUserService : IService<User, UserModel>
     {
         public IQueryable<UserModel> Query();
         public ServiceBase Create(User record);
         public ServiceBase Update(User record);
         public ServiceBase Delete(int id);
     }
-    public class UserService : ServiceBase, IUserService
+    public class UserService : ServiceBase, IService<User, UserModel>, IUserService
     {
+
+        private readonly BlogDbContext _db;
         public UserService(BlogDbContext db) : base(db)
         {
+            _db = db;
         }
         public IQueryable<UserModel> Query()
         {
             return _db.Users
-                    .Include(u => u.Role)
-                    .OrderBy(u => u.UserName)
-                    .Select(u => new UserModel
-                    {
-                        Record = u
-                    });
-            //return _db.Users.OrderBy(u => u.UserName).Select(u => new UserModel() { Record = u });
+                .Include(u => u.Role)
+                .OrderBy(u => u.UserName)
+                .Select(u => new UserModel
+                {
+                    Record = u
+                });
         }
+
         public ServiceBase Create(User record)
         {
             if (_db.Users.Any(u => u.UserName.ToUpper() == record.UserName.ToUpper().Trim()))

@@ -1,139 +1,183 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using System.Security.Claims;
 using BLL.Controllers.Bases;
-using BLL.Services;
+using BLL.Services.Bases;
 using BLL.Models;
-
-// Generated from Custom Template.
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.AspNetCore.Authorization;
+using BLL.DAL;
 
 namespace MVC.Controllers
 {
+    [Authorize(Roles = "Admin")]
     public class UsersController : MvcController
     {
-        // Service injections:
-        private readonly IUserService _userService;
-        private readonly IRoleService _roleService;
+        private readonly IService<User, UserModel> _userService;
 
-        /* Can be uncommented and used for many to many relationships. ManyToManyRecord may be replaced with the related entiy name in the controller and views. */
-        //private readonly IManyToManyRecordService _ManyToManyRecordService;
-
-        public UsersController(
-			IUserService userService
-            , IRoleService roleService
-
-            /* Can be uncommented and used for many to many relationships. ManyToManyRecord may be replaced with the related entiy name in the controller and views. */
-            //, IManyToManyRecordService ManyToManyRecordService
-        )
+        public UsersController(IService<User, UserModel> userService)
         {
             _userService = userService;
-            _roleService = roleService;
-
-            /* Can be uncommented and used for many to many relationships. ManyToManyRecord may be replaced with the related entiy name in the controller and views. */
-            //_ManyToManyRecordService = ManyToManyRecordService;
         }
 
-        // GET: Users
-        public IActionResult Index()
+        // Allow anyone to access the Login page
+        [AllowAnonymous]
+        public IActionResult Login()
         {
-            // Get collection service logic:
-            var list = _userService.Query().ToList();
-            return View(list);
-        }
-
-        // GET: Users/Details/5
-        public IActionResult Details(int id)
-        {
-            // Get item service logic:
-            var item = _userService.Query().SingleOrDefault(q => q.Record.Id == id);
-            return View(item);
-        }
-
-        protected void SetViewData()
-        {
-            // Related items service logic to set ViewData (Record.Id and Name parameters may need to be changed in the SelectList constructor according to the model):
-            ViewData["RoleId"] = new SelectList(_roleService.Query().ToList(), "Record.Id", "Name");
-            
-            /* Can be uncommented and used for many to many relationships. ManyToManyRecord may be replaced with the related entiy name in the controller and views. */
-            //ViewBag.ManyToManyRecordIds = new MultiSelectList(_ManyToManyRecordService.Query().ToList(), "Record.Id", "Name");
-        }
-
-        // GET: Users/Create
-        public IActionResult Create()
-        {
-            SetViewData();
             return View();
         }
 
-        // POST: Users/Create
+        // Allow anyone to post login credentials
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [AllowAnonymous]
+        public async Task<IActionResult> Login(UserModel user)
+        {
+            if (ModelState.IsValid)
+            {
+                // Authenticate user
+                var userModel = _userService.Query().SingleOrDefault(u =>
+                    u.Record.UserName == user.Record.UserName &&
+                    u.Record.Password == user.Record.Password &&
+                    u.Record.IsActive);
+
+                if (userModel != null)
+                {
+                    // Create claims
+                    var claims = new List<Claim>
+                    {
+                        new Claim(ClaimTypes.Name, userModel.Name),
+                        new Claim(ClaimTypes.Role, userModel.Role ?? "Viewer"),
+                        new Claim("Id", userModel.Record.Id.ToString())
+                    };
+
+                    // Create identity and principal
+                    var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+                    var principal = new ClaimsPrincipal(identity);
+
+                    // Sign in
+                    await HttpContext.SignInAsync(principal, new AuthenticationProperties
+                    {
+                        IsPersistent = true // Remember the login session
+                    });
+
+                    return RedirectToAction("Index", "Home");
+                }
+                else
+                {
+                    ModelState.AddModelError("", "Invalid username or password.");
+                }
+            }
+
+            return View();
+        }
+
+        // Allow anyone to log out
+        [AllowAnonymous]
+        public async Task<IActionResult> Logout()
+        {
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return RedirectToAction("Login", "Users");
+        }
+
+        public IActionResult Index()
+        {
+            var users = _userService.Query().ToList();
+            return View(users);
+        }
+
+        public IActionResult Details(int id)
+        {
+            var user = _userService.Query().SingleOrDefault(u => u.Record.Id == id);
+            if (user == null)
+                return NotFound();
+
+            return View(user);
+        }
+
+        public IActionResult Create()
+        {
+            ViewBag.RoleId = new SelectList(_userService.Query().Select(u => u.Record.Role).Distinct(), "Id", "Name");
+            return View();
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Create(UserModel user)
         {
             if (ModelState.IsValid)
             {
-                // Insert item service logic:
                 var result = _userService.Create(user.Record);
                 if (result.IsSuccessful)
                 {
                     TempData["Message"] = result.Message;
-                    return RedirectToAction(nameof(Details), new { id = user.Record.Id });
+                    return RedirectToAction(nameof(Index));
                 }
+
                 ModelState.AddModelError("", result.Message);
             }
-            SetViewData();
+
             return View(user);
         }
 
-        // GET: Users/Edit/5
         public IActionResult Edit(int id)
         {
-            // Get item to edit service logic:
-            var item = _userService.Query().SingleOrDefault(q => q.Record.Id == id);
-            if (item == null)
-            {
+            // Retrieve the user to edit
+            var user = _userService.Query().SingleOrDefault(u => u.Record.Id == id);
+            if (user == null)
                 return NotFound();
-            }
-            SetViewData();
-            return View(item);
+
+            // Populate roles for the dropdown
+            ViewBag.RoleId = new SelectList(_userService.Query().Select(u => u.Record.Role).Distinct(), "Id", "Name");
+
+            return View(user);
         }
 
-        // POST: Users/Edit
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Edit(UserModel user)
         {
             if (ModelState.IsValid)
             {
-                // Update item service logic:
                 var result = _userService.Update(user.Record);
                 if (result.IsSuccessful)
                 {
                     TempData["Message"] = result.Message;
-                    return RedirectToAction(nameof(Details), new { id = user.Record.Id });
+                    return RedirectToAction(nameof(Index));
                 }
+
                 ModelState.AddModelError("", result.Message);
             }
-            SetViewData();
+
+            // Repopulate roles in case of validation failure
+            ViewBag.RoleId = new SelectList(_userService.Query().Select(u => u.Record.Role).Distinct(), "Id", "Name");
+
             return View(user);
         }
 
-        // GET: Users/Delete/5
         public IActionResult Delete(int id)
         {
-            // Get item to delete service logic:
-            var item = _userService.Query().SingleOrDefault(q => q.Record.Id == id);
-            return View(item);
+            var user = _userService.Query().SingleOrDefault(u => u.Record.Id == id);
+            if (user == null)
+                return NotFound();
+
+            return View(user);
         }
 
-        // POST: Users/Delete
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public IActionResult DeleteConfirmed(int id)
         {
-            // Delete item service logic:
             var result = _userService.Delete(id);
-            TempData["Message"] = result.Message;
+            if (result.IsSuccessful)
+            {
+                TempData["Message"] = result.Message;
+                return RedirectToAction(nameof(Index));
+            }
+
+            TempData["Error"] = result.Message;
             return RedirectToAction(nameof(Index));
         }
-	}
+    }
 }
