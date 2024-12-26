@@ -11,15 +11,15 @@ namespace MVC.Controllers
 {
     public class BlogsController : MvcController
     {
-        private readonly IBlogService _blogService;
+        private readonly IService<Blog, BlogModel> _blogService;
         private readonly IUserService _userService;
         private readonly IService<Tag, TagModel> _tagService;
 
         public BlogsController(
-            IBlogService blogService,
+            IService<Blog, BlogModel> blogService,
             IUserService userService,
             IService<Tag, TagModel> tagService
-        )
+)
         {
             _blogService = blogService;
             _userService = userService;

@@ -14,7 +14,7 @@ namespace BLL.Services
         ServiceBase Delete(int id);
     }
 
-    public class BlogService : ServiceBase, IBlogService
+    public class BlogService : ServiceBase, IService<Blog, BlogModel>
     {
         public BlogService(BlogDbContext db) : base(db)
         {

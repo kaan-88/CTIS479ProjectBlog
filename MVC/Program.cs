@@ -27,12 +27,19 @@ appSettingsSection.Bind(new AppSettings());
 var connectionString = builder.Configuration.GetConnectionString("Db");
 builder.Services.AddDbContext<BlogDbContext>(options => options.UseSqlServer(connectionString));
 builder.Services.AddScoped<IRoleService, RoleService>();
-builder.Services.AddScoped<IBlogService, BlogService>();
+builder.Services.AddScoped<IService<Blog, BlogModel>, BlogService>();
 builder.Services.AddScoped<IService<Tag, TagModel>, TagService>();
 builder.Services.AddScoped<IService<User, UserModel>, UserService>();
 builder.Services.AddScoped<IUserService, UserService>();
 
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<HttpServiceBase, HttpService>();
 
+//Session
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+});
 
 var app = builder.Build();
 
@@ -52,6 +59,9 @@ app.UseRouting();
 // Enable Authentication
 app.UseAuthentication();
 app.UseAuthorization();
+
+//Session
+app.UseSession();
 
 app.MapControllerRoute(
     name: "default",
